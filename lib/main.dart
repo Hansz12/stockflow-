@@ -1,184 +1,232 @@
-// main.dart
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:google_fonts/google_fonts.dart'; // REQUIRED: Add to pubspec
-import 'models.dart';
-import 'screens/role_switcher.dart';
+import 'models/product.dart';
+import 'models/supplier.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/inventory_screen.dart';
+import 'screens/supplier_screen.dart';
+import 'screens/reports_screen.dart';
+import 'screens/scanner_screen.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-
-  await Supabase.initialize(
-    url: 'https://xlyqczdgagzuyacwomqh.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhseXFjemRnYWd6dXlhY3dvbXFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MDExOTgsImV4cCI6MjA4NDM3NzE5OH0.yjeDBpPY1_UooZzFoO3P7l8CXpnLRHgJb-n3ZmxEhsg',
-  );
-
-  runApp(const SupplierApp());
+void main() {
+  runApp(const StockFlowApp());
 }
 
-// Global State
-class GlobalAppState extends InheritedWidget {
-  final List<Order> orders;
-  final List<InventoryItem> inventory;
-  final bool isLoading;
-  final Function(Order) addOrder;
-  final Function(String, OrderStatus) updateOrderStatus;
-  final Function(String, double) updateStock;
-
-  const GlobalAppState({
-    super.key,
-    required this.orders,
-    required this.inventory,
-    required this.isLoading,
-    required this.addOrder,
-    required this.updateOrderStatus,
-    required this.updateStock,
-    required super.child,
-  });
-
-  static GlobalAppState of(BuildContext context) {
-    final result = context.dependOnInheritedWidgetOfExactType<GlobalAppState>();
-    assert(result != null, 'No GlobalAppState found in context');
-    return result!;
-  }
+class StockFlowApp extends StatelessWidget {
+  const StockFlowApp({super.key});
 
   @override
-  bool updateShouldNotify(GlobalAppState oldWidget) {
-    return orders != oldWidget.orders || 
-           inventory != oldWidget.inventory ||
-           isLoading != oldWidget.isLoading;
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'StockFlow',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF0F766E), // Teal 700
+          secondary: Colors.orange,
+        ),
+        scaffoldBackgroundColor: Colors.grey[50],
+      ),
+      home: const MainScreen(),
+    );
   }
 }
 
-class SupplierApp extends StatefulWidget {
-  const SupplierApp({super.key});
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
 
   @override
-  State<SupplierApp> createState() => _SupplierAppState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class _SupplierAppState extends State<SupplierApp> {
-  final _supabase = Supabase.instance.client;
-  
-  List<Order> _orders = [];
-  List<InventoryItem> _inventory = [];
-  bool _isLoading = true;
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
+  bool _showScanner = false;
+
+  // --- MOCK DATA ---
+  // Data ini kekal di sini supaya boleh dikongsi antara screen
+  final List<Product> _inventory = [
+    Product(id: 1, name: 'Premium Arabica Coffee', stock: 5, min: 10, price: 35.00, category: 'Beverages'),
+    Product(id: 2, name: 'FarmFresh Fresh Milk', stock: 45, min: 20, price: 7.50, category: 'Dairy'),
+    Product(id: 3, name: 'Brown Sugar 1kg', stock: 8, min: 15, price: 4.20, category: 'Raw Material'),
+    Product(id: 4, name: 'Paper Cups 12oz', stock: 150, min: 50, price: 0.30, category: 'Packaging'),
+  ];
+
+  final List<Supplier> _suppliers = [
+    Supplier(id: 1, name: 'Jaya Coffee Supplier', items: 'Coffee Beans, Sugar', phone: '60123456789'),
+    Supplier(id: 2, name: 'Dairy King Supplies', items: 'Milk, Cheese', phone: '60198765432'),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _fetchData();
-  }
-
-  Future<void> _fetchData() async {
-    try {
-      setState(() => _isLoading = true);
-      
-      final inventoryData = await _supabase.from('inventory').select().order('name', ascending: true);
-      final fetchedInventory = (inventoryData as List).map((i) => InventoryItem.fromJson(i)).toList();
-
-      final ordersData = await _supabase.from('orders').select('*, order_items(*)').order('date', ascending: false);
-      final fetchedOrders = (ordersData as List).map((o) => Order.fromJson(o)).toList();
-
-      setState(() {
-        _inventory = fetchedInventory;
-        _orders = fetchedOrders;
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint('Error fetching data: $e');
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _addOrder(Order order) async {
-    try {
-      setState(() => _orders.insert(0, order));
-
-      await _supabase.from('orders').insert({
-        'id': order.id,
-        'customer_name': order.customerName,
-        'date': order.date.toIso8601String(),
-        'status': order.status.name,
-        'total_amount': order.totalAmount,
-      });
-
-      for (var item in order.items) {
-        await _supabase.from('order_items').insert(item.toJson(order.id));
+    // Simulate low stock check on startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      int lowStockCount = _inventory.where((i) => i.stock <= i.min).length;
+      if (lowStockCount > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Warning: $lowStockCount items are below minimum level!'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(top: 20, left: 10, right: 10),
+          ),
+        );
       }
-    } catch (e) {
-      debugPrint('Error adding order: $e');
-    }
+    });
   }
 
-  Future<void> _updateOrderStatus(String id, OrderStatus newStatus) async {
-    try {
-      setState(() {
-        final index = _orders.indexWhere((o) => o.id == id);
-        if (index != -1) _orders[index].status = newStatus;
-      });
-
-      await _supabase.from('orders').update({'status': newStatus.name}).eq('id', id);
-    } catch (e) {
-      debugPrint('Error updating status: $e');
-    }
-  }
-
-  Future<void> _updateStock(String id, double change) async {
-    try {
-      final index = _inventory.indexWhere((item) => item.id == id);
-      if (index == -1) return;
-
-      double currentStock = _inventory[index].stock;
-      double newStock = (currentStock + change).clamp(0, 9999);
-
-      setState(() {
-        _inventory[index].stock = newStock;
-      });
-
-      await _supabase.from('inventory').update({'stock': newStock}).eq('id', id);
-    } catch (e) {
-      debugPrint('Error updating stock: $e');
-    }
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-    return GlobalAppState(
-      orders: _orders,
-      inventory: _inventory,
-      isLoading: _isLoading,
-      addOrder: _addOrder,
-      updateOrderStatus: _updateOrderStatus,
-      updateStock: _updateStock,
-      child: MaterialApp(
-        title: 'StockFlow',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          // --- THEME & FONT SETTINGS ---
-          primaryColor: kPrimaryColor,
-          scaffoldBackgroundColor: kBackgroundColor,
-          colorScheme: ColorScheme.fromSwatch().copyWith(
-            primary: kPrimaryColor,
-            secondary: Colors.tealAccent,
-            surface: Colors.white,
+    if (_showScanner) {
+      return ScannerScreen(onClose: () => setState(() => _showScanner = false));
+    }
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              _buildHeader(),
+              Expanded(child: _buildBody()),
+            ],
           ),
-          // Using Poppins for that "Cute & Formal" look
-          textTheme: GoogleFonts.poppinsTextTheme(),
-          appBarTheme: AppBarTheme(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
-            elevation: 0,
-            titleTextStyle: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87
-            ),
-          ),
-          useMaterial3: true,
+        ],
+      ),
+      bottomNavigationBar: _buildBottomNavBar(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => setState(() => _showScanner = true),
+        backgroundColor: Colors.orange,
+        elevation: 4,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 30),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    );
+  }
+
+  Widget _buildHeader() {
+    String title = "Dashboard";
+    bool showProfile = true;
+
+    switch (_selectedIndex) {
+      case 0: title = "Dashboard"; break;
+      case 1: title = "Inventory"; break;
+      case 2: title = "Suppliers"; break;
+      case 3: title = "Reports"; showProfile = false; break;
+    }
+
+    int lowStockCount = _inventory.where((i) => i.stock <= i.min).length;
+
+    return Container(
+      padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 25),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F766E), // Teal 700
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
         ),
-        home: const RoleSwitcher(),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text("StockFlow Business", style: TextStyle(color: Colors.tealAccent, fontSize: 12)),
+            ],
+          ),
+          if (showProfile)
+            Row(
+              children: [
+                Stack(
+                  children: [
+                    const Icon(Icons.notifications_none, color: Colors.white, size: 28),
+                    if (lowStockCount > 0)
+                      Positioned(
+                        right: 0, top: 0,
+                        child: Container(
+                          width: 12, height: 12,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF0F766E), width: 2),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 15),
+                Container(
+                  width: 35, height: 35,
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade100,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.teal.shade400, width: 2),
+                  ),
+                  child: Center(child: Text("NA", style: TextStyle(color: Colors.teal.shade900, fontWeight: FontWeight.bold))),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    switch (_selectedIndex) {
+      case 0: return DashboardScreen(inventory: _inventory, onTabChange: _onItemTapped);
+      case 1: return InventoryScreen(inventory: _inventory);
+      case 2: return SupplierScreen(suppliers: _suppliers);
+      case 3: return ReportsScreen();
+      default: return const Center(child: Text("Page Not Found"));
+    }
+  }
+
+  Widget _buildBottomNavBar() {
+    return BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 8.0,
+      color: Colors.white,
+      surfaceTintColor: Colors.white,
+      shadowColor: Colors.black,
+      elevation: 10,
+      child: SizedBox(
+        height: 60,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(Icons.home_rounded, "Home", 0),
+            _buildNavItem(Icons.inventory_2_outlined, "Stock", 1),
+            const SizedBox(width: 40), // Spacer for FAB
+            _buildNavItem(Icons.people_alt_outlined, "Contact", 2),
+            _buildNavItem(Icons.bar_chart_rounded, "Reports", 3),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    bool isActive = _selectedIndex == index;
+    return InkWell(
+      onTap: () => _onItemTapped(index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: isActive ? const Color(0xFF0F766E) : Colors.grey, size: 26),
+          Text(label, style: TextStyle(
+            color: isActive ? const Color(0xFF0F766E) : Colors.grey,
+            fontSize: 10,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+          )),
+        ],
       ),
     );
   }
