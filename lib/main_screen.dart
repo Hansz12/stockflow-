@@ -17,11 +17,12 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  // --- DATA STATE DISIMPAN DI SINI AGAR KEKAL BILA TUKAR PAGE ---
+  // Initial Data
   List<Product> inventory = [
     Product(id: '1', name: 'Premium Arabica Coffee', category: 'Beverages', stock: 5, minStock: 10, price: 35.00),
     Product(id: '2', name: 'FarmFresh Fresh Milk', category: 'Dairy', stock: 45, minStock: 20, price: 7.50),
     Product(id: '3', name: 'Brown Sugar 1kg', category: 'Raw Material', stock: 8, minStock: 15, price: 4.20),
+    Product(id: '4', name: 'Paper Cups 12oz', category: 'Packaging', stock: 150, minStock: 50, price: 0.30),
   ];
 
   List<Supplier> suppliers = [
@@ -40,28 +41,25 @@ class _MainScreenState extends State<MainScreen> {
       inventory.add(product);
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${product.name} berjaya ditambah!'), backgroundColor: Colors.teal),
+      SnackBar(content: Text('${product.name} Added!'), backgroundColor: Colors.teal),
     );
   }
 
   void _handleBarcodeScan(String code) {
-    // 1. Cari jika produk sudah wujud
     final existingIndex = inventory.indexWhere((p) => p.barcode == code);
 
     if (existingIndex != -1) {
-      // 2. Jika wujud, tambah stok sahaja
       setState(() {
         inventory[existingIndex].stock += 1;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Stok ditambah: ${inventory[existingIndex].name} (+1)'),
+          content: Text('Stock Updated: ${inventory[existingIndex].name} (+1)'),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
       );
     } else {
-      // 3. Jika baru, buka form untuk isi nama
       _showAddProductDialog(scannedCode: code);
     }
   }
@@ -75,51 +73,69 @@ class _MainScreenState extends State<MainScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        ),
         padding: EdgeInsets.only(
-            top: 20, left: 20, right: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20
+            top: 25, left: 25, right: 25,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 25
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(scannedCode != null ? 'Produk Baru Dikesan!' : 'Tambah Produk',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal)),
+            Center(
+              child: Container(
+                width: 50, height: 5,
+                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(scannedCode != null ? 'New Product Detected!' : 'Add New Product',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blueGrey[900])),
+
             if (scannedCode != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.orange[50], borderRadius: BorderRadius.circular(8)),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.qr_code, size: 16, color: Colors.orange),
-                      const SizedBox(width: 8),
-                      Text('Barcode: $scannedCode', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 15),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.orange[50], borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.qr_code, size: 20, color: Colors.orange),
+                    const SizedBox(width: 10),
+                    Text('Barcode: $scannedCode', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
+
+            const SizedBox(height: 20),
+            _buildTextField(nameController, 'Product Name', Icons.inventory),
             const SizedBox(height: 15),
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nama Produk', border: OutlineInputBorder())),
-            const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: TextField(controller: priceController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Harga (RM)', border: OutlineInputBorder()))),
-                const SizedBox(width: 10),
-                Expanded(child: TextField(controller: stockController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Stok Awal', border: OutlineInputBorder()))),
+                Expanded(child: _buildTextField(priceController, 'Price (RM)', Icons.attach_money, isNumber: true)),
+                const SizedBox(width: 15),
+                Expanded(child: _buildTextField(stockController, 'Initial Stock', Icons.numbers, isNumber: true)),
               ],
             ),
-            const SizedBox(height: 10),
-            TextField(controller: categoryController, decoration: const InputDecoration(labelText: 'Kategori', border: OutlineInputBorder())),
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
+            _buildTextField(categoryController, 'Category', Icons.category),
+            const SizedBox(height: 30),
+
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 55,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0D9488),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 5,
+                  shadowColor: const Color(0xFF0D9488).withOpacity(0.4),
+                ),
                 onPressed: () {
                   if (nameController.text.isNotEmpty) {
                     _addNewProduct(Product(
@@ -134,7 +150,7 @@ class _MainScreenState extends State<MainScreen> {
                     Navigator.pop(ctx);
                   }
                 },
-                child: const Text('Simpan Produk'),
+                child: const Text('Save Product', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -143,9 +159,23 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool isNumber = false}) {
+    return TextField(
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: Colors.grey[400]),
+        filled: true,
+        fillColor: Colors.grey[50],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Susun pages dalam list
     final List<Widget> pages = [
       DashboardPage(inventory: inventory, onAddPressed: () => _showAddProductDialog(), onTabChange: _onItemTapped),
       InventoryPage(inventory: inventory),
@@ -154,43 +184,95 @@ class _MainScreenState extends State<MainScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('StockFlow', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: Colors.teal,
-        actions: [
-          IconButton(onPressed: (){}, icon: const Icon(Icons.notifications, color: Colors.white))
-        ],
-      ),
+      extendBody: true, // Key for floating navbar effect
+      backgroundColor: const Color(0xFFF3F4F6),
+      appBar: _currentIndex != 0
+          ? AppBar(
+        title: Text(
+          _currentIndex == 1 ? 'Inventory' : _currentIndex == 2 ? 'Suppliers' : 'Reports',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      )
+          : null,
+
       body: SafeArea(
+        bottom: false,
         child: IndexedStack(
           index: _currentIndex,
           children: pages,
         ),
       ),
-      // Butang Scan Terapung
-      floatingActionButton: FloatingActionButton.large(
-        onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => BarcodeScannerPage(onScan: _handleBarcodeScan),
-          ));
-        },
-        backgroundColor: Colors.orange,
-        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
+
+      floatingActionButton: SizedBox(
+        width: 70, height: 70,
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => BarcodeScannerPage(onScan: _handleBarcodeScan),
+            ));
+          },
+          backgroundColor: const Color(0xFFF97316),
+          elevation: 10,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 32),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: Colors.teal,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'Stock'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Suppliers'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Reports'),
-        ],
+
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
+        ),
+        child: BottomAppBar(
+          height: 80,
+          color: Colors.white,
+          surfaceTintColor: Colors.white,
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 12,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(0, Icons.grid_view_rounded, "Home"),
+              _buildNavItem(1, Icons.inventory_2_rounded, "Stock"),
+              const SizedBox(width: 48), // Gap for FAB
+              _buildNavItem(2, Icons.people_alt_rounded, "Supplier"),
+              _buildNavItem(3, Icons.bar_chart_rounded, "Report"),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _currentIndex == index;
+    return InkWell(
+      onTap: () => _onItemTapped(index),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFF0D9488) : Colors.grey[400],
+              size: 26,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFF0D9488) : Colors.grey[400],
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

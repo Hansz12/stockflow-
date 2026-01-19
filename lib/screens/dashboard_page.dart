@@ -18,73 +18,116 @@ class DashboardPage extends StatelessWidget {
     int lowStock = inventory.where((i) => i.stock <= i.minStock).length;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(20, 60, 20, 20), // Top padding for status bar
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(child: _buildStatCard('Total Items', '${inventory.length}', Icons.inventory, Colors.blue)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildStatCard('Low Stock', '$lowStock', Icons.warning_amber_rounded, Colors.red)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Text("Quick Actions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 12),
+          // Custom Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildActionButton(Icons.add, "Add Item", Colors.teal, onAddPressed),
-              _buildActionButton(Icons.phone, "Order Stock", Colors.green, () => onTabChange(2)), // Index 2 is Supplier
-              _buildActionButton(Icons.trending_up, "Trends", Colors.purple, () => onTabChange(3)), // Index 3 is Report
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Dashboard",
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blueGrey[900])),
+                  Text("StockFlow Business",
+                      style: TextStyle(color: Colors.blueGrey[400], fontSize: 14)),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Theme.of(context).primaryColor, width: 2),
+                ),
+                child: CircleAvatar(
+                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                  child: Text("NA", style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
+                ),
+              ),
             ],
           ),
+
           const SizedBox(height: 24),
-          // Placeholder activity
+
+          // Stats Cards Grid
+          Row(
+            children: [
+              Expanded(child: _buildStatCard(context, 'Total Items', '${inventory.length}', Icons.inventory_2_outlined, Colors.blue)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildStatCard(context, 'Low Stock', '$lowStock', Icons.warning_amber_rounded, Colors.red, isAlert: lowStock > 0)),
+            ],
+          ),
+
+          const SizedBox(height: 30),
+
+          // Quick Actions
+          Text("Quick Actions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey[800])),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildActionButton(context, Icons.add_circle_outline, "Add Item", Colors.teal, onAddPressed),
+              _buildActionButton(context, Icons.phone_in_talk_outlined, "Order", Colors.green, () => onTabChange(2)),
+              _buildActionButton(context, Icons.analytics_outlined, "Trends", Colors.purple, () => onTabChange(3)),
+            ],
+          ),
+
+          const SizedBox(height: 30),
+
+          // Recent Activity
+          Text("Recent Activity", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey[800])),
+          const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-            child: const Text("Recent activity will appear here...", style: TextStyle(color: Colors.grey)),
-          )
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))],
+            ),
+            child: Column(
+              children: [
+                _buildActivityItem("Stock In: Fresh Milk", "10:45 AM • +20 Units", Colors.green),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(color: Colors.grey[100]),
+                ),
+                _buildActivityItem("Sale: Arabica Coffee", "09:30 AM • -2 Units", Colors.orange),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 100), // Extra space for FAB
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Dashboard", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            Text("StockFlow Business", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-          ],
-        ),
-        CircleAvatar(backgroundColor: Colors.teal[100], child: const Text("NA", style: TextStyle(color: Colors.teal, fontWeight: FontWeight.bold))),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon, Color color, {bool isAlert = false}) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      height: 120,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)]),
+      height: 140,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: isAlert ? Border.all(color: color.withOpacity(0.3), width: 2) : null,
+        boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          CircleAvatar(backgroundColor: color.withOpacity(0.1), child: Icon(icon, color: color)),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 24),
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-              Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(title, style: TextStyle(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500)),
+              Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blueGrey[900])),
             ],
           )
         ],
@@ -92,21 +135,50 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton(IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(BuildContext context, IconData icon, String label, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         width: 100,
         padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(color: color.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.1))),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.1)),
+        ),
         child: Column(
           children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 8),
-            Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 10),
+            Text(label, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildActivityItem(String title, String subtitle, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 12, height: 12,
+          decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withOpacity(0.3), width: 3)
+          ),
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blueGrey[800], fontSize: 15)),
+            const SizedBox(height: 2),
+            Text(subtitle, style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+          ],
+        )
+      ],
     );
   }
 }
