@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 1. PERMISSIONS (WAJIB TAMBAH INI) -->
+    <!-- Diperlukan untuk scan barcode -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Diperlukan untuk akses internet standard -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="stockflow"
         android:name="${applicationName}"
@@ -17,9 +24,9 @@
                  while the Flutter UI initializes. After that, this theme continues
                  to determine the Window background behind the Flutter UI. -->
             <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"
+                />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -31,15 +38,32 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
-    <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
-         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
-         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <!-- 2. QUERIES (WAJIB TAMBAH UNTUK WHATSAPP/CALL) -->
+    <!-- Tanpa ini, app akan crash bila tekan button WhatsApp di Android 11+ -->
     <queries>
+        <!-- Standard Flutter text processing -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+
+        <!-- Tambahan: Benarkan buka link HTTPS (Web) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <!-- Tambahan: Benarkan buka SMS -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="sms" />
+        </intent>
+        <!-- Tambahan: Benarkan buka Phone Dialer -->
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+        <!-- Tambahan: Benarkan check app WhatsApp wujud atau tak -->
+        <package android:name="com.whatsapp" />
     </queries>
 </manifest>
