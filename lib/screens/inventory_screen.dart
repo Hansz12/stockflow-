@@ -1,63 +1,103 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 
-class InventoryScreen extends StatelessWidget {
+class InventoryScreen extends StatefulWidget {
   final List<Product> inventory;
   const InventoryScreen({super.key, required this.inventory});
+
+  @override
+  State<InventoryScreen> createState() => _InventoryScreenState();
+}
+
+class _InventoryScreenState extends State<InventoryScreen> {
+  // Logic to update stock live
+  void _updateStock(int index, int change) {
+    setState(() {
+      int currentStock = widget.inventory[index].stock;
+      int newStock = currentStock + change;
+
+      if (newStock >= 0) {
+        // Create new object to update list reference
+        Product old = widget.inventory[index];
+        widget.inventory[index] = Product(
+            id: old.id,
+            name: old.name,
+            stock: newStock,
+            min: old.min,
+            price: old.price,
+            category: old.category
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Search Bar
         Padding(
           padding: const EdgeInsets.all(16),
           child: TextField(
             decoration: InputDecoration(
               hintText: 'Search products or scan...',
               prefixIcon: const Icon(Icons.search, color: Colors.grey),
-              suffixIcon: const Icon(Icons.qr_code_scanner, color: Colors.grey),
               filled: true, fillColor: Colors.white,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
             ),
           ),
         ),
+
+        // Product List
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 80),
-            itemCount: inventory.length,
+            itemCount: widget.inventory.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (ctx, i) {
-              final item = inventory[i];
+              final item = widget.inventory[i];
               final isLow = item.stock <= item.min;
+
               return Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white, borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
                   border: Border(left: BorderSide(color: isLow ? Colors.red : const Color(0xFF0F766E), width: 4)),
                   boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1))],
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                        const SizedBox(height: 4),
-                        Text("${item.category} • RM ${item.price.toStringAsFixed(2)}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                        if (isLow) Container(
-                          margin: const EdgeInsets.only(top: 6), padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(4)),
-                          child: const Text("Critical Stock!", style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          Text("RM ${item.price.toStringAsFixed(2)}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                          if (isLow) const Text("Critical Stock!", style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+
+                    // Interactive Buttons (+/-)
+                    Row(
                       children: [
-                        Text(item.stock.toString(), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isLow ? Colors.red : Colors.black87)),
-                        const Text("Units", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                        IconButton(
+                          onPressed: () => _updateStock(i, -1),
+                          icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                        ),
+                        SizedBox(
+                          width: 40,
+                          child: Text(
+                            item.stock.toString(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isLow ? Colors.red : Colors.black87),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => _updateStock(i, 1),
+                          icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                        ),
                       ],
                     )
                   ],
@@ -71,7 +111,7 @@ class InventoryScreen extends StatelessWidget {
   }
 }
 
-// Modal Add Product kita letak sekali di sini atau dalam file widgets/ asing
+// Modal for adding product (Visual Placeholder)
 class AddProductModal extends StatelessWidget {
   const AddProductModal({super.key});
   @override

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
-import 'inventory_screen.dart'; // Utk akses AddProductModal
+import 'inventory_screen.dart'; // To access AddProductModal
 
 class DashboardScreen extends StatelessWidget {
   final List<Product> inventory;
@@ -15,6 +15,7 @@ class DashboardScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Stats Cards
         Row(
           children: [
             Expanded(child: _buildStatCard(
@@ -29,6 +30,8 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 24),
+
+        // Quick Actions
         const Text("Quick Actions", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         SingleChildScrollView(
@@ -36,7 +39,6 @@ class DashboardScreen extends StatelessWidget {
           child: Row(
             children: [
               _buildActionButton(Icons.add, "Add Item", Colors.teal, () {
-                // Kita panggil modal dari inventory screen file atau buat widget asing
                 showModalBottomSheet(context: context, isScrollControlled: true, builder: (ctx) => const AddProductModal());
               }),
               const SizedBox(width: 12),
@@ -47,6 +49,8 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
+
+        // Recent Activity
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(

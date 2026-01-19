@@ -6,6 +6,7 @@ import 'screens/inventory_screen.dart';
 import 'screens/supplier_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/scanner_screen.dart';
+import 'screens/login_screen.dart'; // <--- Wajib ada import ini
 
 void main() {
   runApp(const StockFlowApp());
@@ -27,11 +28,13 @@ class StockFlowApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: Colors.grey[50],
       ),
-      home: const MainScreen(),
+      // PASTIKAN INI ADALAH LoginScreen
+      home: const LoginScreen(),
     );
   }
 }
 
+// --- MAIN DASHBOARD (Skrin selepas login) ---
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -43,8 +46,8 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   bool _showScanner = false;
 
-  // --- MOCK DATA ---
-  // Data ini kekal di sini supaya boleh dikongsi antara screen
+  // --- MOCK DATA (ENGLISH) ---
+  // Data ini disimpan di sini supaya boleh dikongsi (state management mudah)
   final List<Product> _inventory = [
     Product(id: 1, name: 'Premium Arabica Coffee', stock: 5, min: 10, price: 35.00, category: 'Beverages'),
     Product(id: 2, name: 'FarmFresh Fresh Milk', stock: 45, min: 20, price: 7.50, category: 'Dairy'),
@@ -60,7 +63,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    // Simulate low stock check on startup
+    // Check low stock on app load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       int lowStockCount = _inventory.where((i) => i.stock <= i.min).length;
       if (lowStockCount > 0) {
@@ -82,6 +85,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Show Scanner Overlay if active
     if (_showScanner) {
       return ScannerScreen(onClose: () => setState(() => _showScanner = false));
     }
@@ -92,6 +96,7 @@ class _MainScreenState extends State<MainScreen> {
           Column(
             children: [
               _buildHeader(),
+              // Expanded ensures the body takes remaining space
               Expanded(child: _buildBody()),
             ],
           ),
@@ -204,7 +209,7 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             _buildNavItem(Icons.home_rounded, "Home", 0),
             _buildNavItem(Icons.inventory_2_outlined, "Stock", 1),
-            const SizedBox(width: 40), // Spacer for FAB
+            const SizedBox(width: 40),
             _buildNavItem(Icons.people_alt_outlined, "Contact", 2),
             _buildNavItem(Icons.bar_chart_rounded, "Reports", 3),
           ],

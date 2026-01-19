@@ -4,6 +4,52 @@ class ScannerScreen extends StatelessWidget {
   final VoidCallback onClose;
   const ScannerScreen({super.key, required this.onClose});
 
+  // Popup function when scan is simulated
+  void _simulateScan(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Column(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 50),
+              SizedBox(height: 10),
+              Text("Product Detected!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text("FarmFresh Fresh Milk", style: TextStyle(fontSize: 14, color: Colors.grey)),
+            ],
+          ),
+          content: const Text("Select action to update stock:", textAlign: TextAlign.center),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            // Sell Button
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                onClose();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Success: Stock Deducted (-1)"), backgroundColor: Colors.red));
+              },
+              icon: const Icon(Icons.remove, color: Colors.white),
+              label: const Text("Sell"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            ),
+            // Restock Button
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                onClose();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Success: Stock Added (+1)"), backgroundColor: Colors.green));
+              },
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text("Restock"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,8 +76,8 @@ class ScannerScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(onPressed: onClose, icon: const Icon(Icons.close, color: Colors.white)),
-                const Text("Scan Barcode", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                IconButton(onPressed: onClose, icon: const Icon(Icons.close, color: Colors.white, size: 30)),
+                const Text("Scan Barcode", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
                 IconButton(onPressed: () {}, icon: const Icon(Icons.flash_on, color: Colors.white)),
               ],
             ),
@@ -39,16 +85,19 @@ class ScannerScreen extends StatelessWidget {
           Positioned(
             bottom: 60, left: 0, right: 0,
             child: Center(
-              child: GestureDetector(
-                onTap: () {
-                  onClose();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Product detected: Chocolate Syrup (+1 Added)"), backgroundColor: Colors.green));
-                },
-                child: Container(
-                  width: 70, height: 70,
-                  decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey, width: 4)),
-                  child: const Center(child: Icon(Icons.camera_alt, color: Colors.black)),
-                ),
+              child: Column(
+                children: [
+                  const Text("Point camera at product", style: TextStyle(color: Colors.white54)),
+                  const SizedBox(height: 20),
+                  GestureDetector(
+                    onTap: () => _simulateScan(context),
+                    child: Container(
+                      width: 80, height: 80,
+                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.withOpacity(0.5), width: 6)),
+                      child: const Center(child: Icon(Icons.qr_code_scanner, color: Colors.black, size: 40)),
+                    ),
+                  ),
+                ],
               ),
             ),
           )
