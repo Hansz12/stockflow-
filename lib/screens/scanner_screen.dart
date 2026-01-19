@@ -4,7 +4,6 @@ class ScannerScreen extends StatelessWidget {
   final VoidCallback onClose;
   const ScannerScreen({super.key, required this.onClose});
 
-  // Popup function when scan is simulated
   void _simulateScan(BuildContext context) {
     showDialog(
       context: context,
@@ -22,7 +21,6 @@ class ScannerScreen extends StatelessWidget {
           content: const Text("Select action to update stock:", textAlign: TextAlign.center),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
-            // Sell Button
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(ctx);
@@ -33,7 +31,6 @@ class ScannerScreen extends StatelessWidget {
               label: const Text("Sell"),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             ),
-            // Restock Button
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(ctx);

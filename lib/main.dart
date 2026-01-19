@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/product.dart';
 import 'models/supplier.dart';
 import 'screens/dashboard_screen.dart';
@@ -6,9 +7,15 @@ import 'screens/inventory_screen.dart';
 import 'screens/supplier_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/scanner_screen.dart';
-import 'screens/login_screen.dart'; // <--- Wajib ada import ini
+import 'screens/login_screen.dart';
 
-void main() {
+// --- SUPABASE CONFIG ---
+const supabaseUrl = 'https://gwiadibdefpgcqqvubak.supabase.co';
+const supabaseKey = 'sb_publishable_AMnP5RjPZdeZC7o3M3zNMw_7yrf1dK6';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
   runApp(const StockFlowApp());
 }
 
@@ -28,13 +35,11 @@ class StockFlowApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: Colors.grey[50],
       ),
-      // PASTIKAN INI ADALAH LoginScreen
       home: const LoginScreen(),
     );
   }
 }
 
-// --- MAIN DASHBOARD (Skrin selepas login) ---
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -46,8 +51,7 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   bool _showScanner = false;
 
-  // --- MOCK DATA (ENGLISH) ---
-  // Data ini disimpan di sini supaya boleh dikongsi (state management mudah)
+  // Local Mock Data for Inventory Screen (Dashboard uses Supabase Live Data)
   final List<Product> _inventory = [
     Product(id: 1, name: 'Premium Arabica Coffee', stock: 5, min: 10, price: 35.00, category: 'Beverages'),
     Product(id: 2, name: 'FarmFresh Fresh Milk', stock: 45, min: 20, price: 7.50, category: 'Dairy'),
@@ -63,8 +67,9 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    // Check low stock on app load
+    // Simple snackbar check for local list (Optional, since dashboard handles live alerts)
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // You can remove this if you only rely on Dashboard for alerts
       int lowStockCount = _inventory.where((i) => i.stock <= i.min).length;
       if (lowStockCount > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +90,6 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Show Scanner Overlay if active
     if (_showScanner) {
       return ScannerScreen(onClose: () => setState(() => _showScanner = false));
     }
@@ -96,7 +100,6 @@ class _MainScreenState extends State<MainScreen> {
           Column(
             children: [
               _buildHeader(),
-              // Expanded ensures the body takes remaining space
               Expanded(child: _buildBody()),
             ],
           ),
@@ -125,8 +128,6 @@ class _MainScreenState extends State<MainScreen> {
       case 3: title = "Reports"; showProfile = false; break;
     }
 
-    int lowStockCount = _inventory.where((i) => i.stock <= i.min).length;
-
     return Container(
       padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 25),
       decoration: const BoxDecoration(
@@ -150,23 +151,7 @@ class _MainScreenState extends State<MainScreen> {
           if (showProfile)
             Row(
               children: [
-                Stack(
-                  children: [
-                    const Icon(Icons.notifications_none, color: Colors.white, size: 28),
-                    if (lowStockCount > 0)
-                      Positioned(
-                        right: 0, top: 0,
-                        child: Container(
-                          width: 12, height: 12,
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFF0F766E), width: 2),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                const Icon(Icons.notifications_none, color: Colors.white, size: 28),
                 const SizedBox(width: 15),
                 Container(
                   width: 35, height: 35,
@@ -186,11 +171,16 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildBody() {
     switch (_selectedIndex) {
-      case 0: return DashboardScreen(inventory: _inventory, onTabChange: _onItemTapped);
-      case 1: return InventoryScreen(inventory: _inventory);
-      case 2: return SupplierScreen(suppliers: _suppliers);
-      case 3: return ReportsScreen();
-      default: return const Center(child: Text("Page Not Found"));
+      case 0:
+        return DashboardScreen(onTabChange: _onItemTapped); // Uses Supabase Live Data
+      case 1:
+        return InventoryScreen(inventory: _inventory); // Uses Local Mock List
+      case 2:
+        return SupplierScreen(suppliers: _suppliers);
+      case 3:
+        return ReportsScreen();
+      default:
+        return const Center(child: Text("Page Not Found"));
     }
   }
 
