@@ -10,59 +10,76 @@ class BarcodeScannerPage extends StatefulWidget {
   State<BarcodeScannerPage> createState() => _BarcodeScannerPageState();
 }
 
-class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
-  // Controller untuk kawal kamera & lampu
+class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTickerProviderStateMixin {
+  // Controller Kamera
   final MobileScannerController controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
     returnImage: false,
     torchEnabled: false,
   );
 
-  bool isScanned = false; // Elak double scan
+  bool isScanned = false;
+  late AnimationController _animController;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    // Setup Laser Animation (Gerak turun naik 2 saat)
+    _animController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 0, end: 1).animate(_animController);
+  }
 
   @override
   void dispose() {
-    controller.dispose(); // Wajib tutup controller elak memory leak
+    controller.dispose();
+    _animController.dispose();
     super.dispose();
   }
 
-  // Fungsi Input Manual (Jika barcode rosak)
+  // Fungsi Manual Input
   void _enterManualCode() {
-    controller.stop(); // Pause kamera sekejap
-
+    controller.stop();
     final textController = TextEditingController();
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Input Manual"),
+        backgroundColor: Colors.grey[900],
+        title: const Text("Input Manual", style: TextStyle(color: Colors.white)),
         content: TextField(
           controller: textController,
           keyboardType: TextInputType.number,
+          style: const TextStyle(color: Colors.white),
           autofocus: true,
           decoration: const InputDecoration(
-            hintText: "Taip nombor barcode...",
-            border: OutlineInputBorder(),
+            hintText: "Nombor Barcode...",
+            hintStyle: TextStyle(color: Colors.white54),
+            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              controller.start(); // Sambung kamera
+              controller.start();
             },
-            child: const Text("Batal"),
+            child: const Text("Batal", style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () {
               if (textController.text.isNotEmpty) {
-                Navigator.pop(ctx); // Tutup dialog
-                Navigator.pop(context); // Tutup scanner page
+                Navigator.pop(ctx);
+                Navigator.pop(context);
                 widget.onScan(textController.text);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-            child: const Text("Simpan"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text("Simpan", style: TextStyle(color: Colors.white)),
           )
         ],
       ),
@@ -75,22 +92,18 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. KAMERA (Layer paling bawah)
+          // 1. KAMERA
           MobileScanner(
             controller: controller,
             onDetect: (capture) {
-              if (isScanned) return;
-              final List<Barcode> barcodes = capture.barcodes;
-              for (final barcode in barcodes) {
+              if (!isScanned && capture.barcodes.isNotEmpty) {
+                final barcode = capture.barcodes.first;
                 if (barcode.rawValue != null) {
                   setState(() => isScanned = true);
-                  final code = barcode.rawValue!;
-
                   if (mounted) {
                     Navigator.pop(context);
-                    widget.onScan(code);
+                    widget.onScan(barcode.rawValue!);
                   }
-                  break;
                 }
               }
             },
@@ -99,143 +112,146 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error, color: Colors.white, size: 50),
+                    const Icon(Icons.videocam_off, color: Colors.white54, size: 50),
                     const SizedBox(height: 10),
-                    Text("Error: ${error.errorCode}", style: const TextStyle(color: Colors.white)),
+                    const Text("Kamera tidak berfungsi di Emulator", style: TextStyle(color: Colors.white54)),
+                    Text("Error: ${error.errorCode}", style: const TextStyle(color: Colors.white24, fontSize: 10)),
                   ],
                 ),
               );
             },
           ),
 
-          // 2. OVERLAY GELAP (Layer Tengah)
+          // 2. GELAP TEPI (Overlay)
           ColorFiltered(
-            colorFilter: ColorFilter.mode(
-              Colors.black.withOpacity(0.5),
-              BlendMode.srcOut,
-            ),
+            colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.6), BlendMode.srcOut),
             child: Stack(
               children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.transparent,
-                    backgroundBlendMode: BlendMode.dstOut,
-                  ),
-                ),
-                Center(
-                  child: Container(
-                    height: 260,
-                    width: 260,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
+                Container(decoration: const BoxDecoration(color: Colors.transparent, backgroundBlendMode: BlendMode.dstOut)),
+                Center(child: Container(height: 280, width: 280, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)))),
               ],
             ),
           ),
 
-          // 3. BORDER HIJAU/TEAL (Layer Atas)
+          // 3. KOTAK OREN & LASER MERAH (Design Belah Kiri)
           Center(
             child: Container(
-              height: 260,
-              width: 260,
+              height: 280,
+              width: 280,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.teal, width: 3),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Center(
-                child: Icon(Icons.add, color: Colors.white54, size: 30),
+              child: Stack(
+                children: [
+                  // Bucu Oren (Custom Painter or Simple Borders)
+                  // Top Left
+                  Positioned(top: 0, left: 0, child: Container(width: 30, height: 30, decoration: const BoxDecoration(border: Border(top: BorderSide(color: Colors.orange, width: 4), left: BorderSide(color: Colors.orange, width: 4))))),
+                  // Top Right
+                  Positioned(top: 0, right: 0, child: Container(width: 30, height: 30, decoration: const BoxDecoration(border: Border(top: BorderSide(color: Colors.orange, width: 4), right: BorderSide(color: Colors.orange, width: 4))))),
+                  // Bottom Left
+                  Positioned(bottom: 0, left: 0, child: Container(width: 30, height: 30, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Colors.orange, width: 4), left: BorderSide(color: Colors.orange, width: 4))))),
+                  // Bottom Right
+                  Positioned(bottom: 0, right: 0, child: Container(width: 30, height: 30, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Colors.orange, width: 4), right: BorderSide(color: Colors.orange, width: 4))))),
+
+                  // Laser Merah Bergerak
+                  AnimatedBuilder(
+                    animation: _animation,
+                    builder: (context, child) {
+                      return Positioned(
+                        top: 280 * _animation.value, // Bergerak dari 0 ke 280
+                        left: 10,
+                        right: 10,
+                        child: Container(
+                          height: 2,
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.8),
+                            boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.5), blurRadius: 10, spreadRadius: 2)],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ),
 
-          // 4. HEADER (Back Button)
+          // 4. HEADER BACK BUTTON
           Positioned(
             top: 50,
             left: 20,
-            child: CircleAvatar(
-              backgroundColor: Colors.black45,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(50)),
+                child: const Icon(Icons.arrow_back, color: Colors.white),
               ),
             ),
           ),
 
           // 5. TEKS ARAHAN
           const Positioned(
-            bottom: 150,
+            bottom: 160,
             left: 0,
             right: 0,
             child: Text(
-              "Halakan kamera pada barcode",
+              "Halakan kamera pada produk",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                shadows: [Shadow(blurRadius: 5, color: Colors.black)],
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
 
-          // 6. CONTROL BUTTONS (Manual & Flash)
+          // 6. BUTANG FUNGSI (Flash & Manual)
           Positioned(
-            bottom: 50,
+            bottom: 60,
             left: 0,
             right: 0,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Butang Manual
-                InkWell(
-                  onTap: _enterManualCode,
-                  child: Column(
-                    children: const [
-                      CircleAvatar(
-                        radius: 25,
-                        backgroundColor: Colors.white24,
-                        child: Icon(Icons.keyboard, color: Colors.white),
-                      ),
-                      SizedBox(height: 5),
-                      Text("Manual", style: TextStyle(color: Colors.white, fontSize: 12)),
-                    ],
-                  ),
-                ),
+                _buildFunctionBtn(Icons.keyboard, "Manual", _enterManualCode, false),
 
                 const SizedBox(width: 60),
 
-                // Butang Flash (YANG DIBETULKAN)
+                // Butang Flash
                 ValueListenableBuilder(
-                  valueListenable: controller, // <--- Dengar terus pada controller
+                  valueListenable: controller,
                   builder: (context, state, child) {
-                    // Akses torchState dari dalam state controller
                     final isFlashOn = state.torchState == TorchState.on;
-
-                    return InkWell(
-                      onTap: () => controller.toggleTorch(),
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 25,
-                            backgroundColor: isFlashOn ? Colors.yellow : Colors.white24,
-                            child: Icon(
-                                isFlashOn ? Icons.flash_on : Icons.flash_off,
-                                color: isFlashOn ? Colors.black : Colors.white
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          const Text("Flash", style: TextStyle(color: Colors.white, fontSize: 12)),
-                        ],
-                      ),
+                    return _buildFunctionBtn(
+                        isFlashOn ? Icons.flash_on : Icons.flash_off,
+                        "Flash",
+                            () => controller.toggleTorch(),
+                        isFlashOn
                     );
                   },
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFunctionBtn(IconData icon, String label, VoidCallback onTap, bool isActive) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isActive ? Colors.orange : Colors.white24,
+              shape: BoxShape.circle,
+              border: Border.all(color: isActive ? Colors.orange : Colors.white12),
+            ),
+            child: Icon(icon, color: isActive ? Colors.white : Colors.white70, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
         ],
       ),
     );

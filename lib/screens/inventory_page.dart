@@ -48,6 +48,22 @@ class _InventoryPageState extends State<InventoryPage> {
     });
   }
 
+  // --- FUNGSI UPDATE STOK (BARU TAMBAH) ---
+  void _updateStock(Product item, int change) {
+    setState(() {
+      // Logic: Tambah change (+1 atau -1)
+      int newStock = item.stock + change;
+
+      // Safety check: Jangan bagi stok jadi negatif
+      if (newStock >= 0) {
+        item.stock = newStock;
+      }
+    });
+
+    // Nota: Di sini anda update object sebenar dalam memori.
+    // Bila balik ke Dashboard, nombor di sana pun akan berubah automatik.
+  }
+
   @override
   Widget build(BuildContext context) {
     // Dapatkan list unik kategori untuk Filter Chips
@@ -192,11 +208,13 @@ class _InventoryPageState extends State<InventoryPage> {
                         children: [
                           Row(
                             children: [
+                              // BUTTON TOLAK
                               _buildQuickBtn(Icons.remove, Colors.red, () {
-                                // Logic to decrease logic (In real app, update DB)
+                                _updateStock(item, -1); // Tolak 1
                               }),
+
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                padding: const EdgeInsets.symmetric(horizontal: 12.0),
                                 child: Text("${item.stock}",
                                     style: TextStyle(
                                         fontSize: 18,
@@ -205,8 +223,10 @@ class _InventoryPageState extends State<InventoryPage> {
                                     )
                                 ),
                               ),
+
+                              // BUTTON TAMBAH
                               _buildQuickBtn(Icons.add, Colors.green, () {
-                                // Logic to increase
+                                _updateStock(item, 1); // Tambah 1
                               }),
                             ],
                           ),
@@ -230,16 +250,20 @@ class _InventoryPageState extends State<InventoryPage> {
 
   // Helper untuk butang kecil +/-
   Widget _buildQuickBtn(IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: 28, height: 28,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
+    return Material( // Guna Material utk dapat effect tekan (ripple)
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 32, height: 32, // Besarkan sikit supaya senang tekan
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withOpacity(0.2)),
+          ),
+          child: Icon(icon, size: 18, color: color),
         ),
-        child: Icon(icon, size: 16, color: color),
       ),
     );
   }

@@ -2,39 +2,119 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/supplier_model.dart';
 
-class SuppliersPage extends StatelessWidget {
+class SuppliersPage extends StatefulWidget {
   final List<Supplier> suppliers;
-  const SuppliersPage({super.key, required this.suppliers});
+  // Callback ini penting supaya data disimpan ke Main Screen
+  final Function(Supplier) onAddSupplier;
 
+  const SuppliersPage({
+    super.key,
+    required this.suppliers,
+    required this.onAddSupplier
+  });
+
+  @override
+  State<SuppliersPage> createState() => _SuppliersPageState();
+}
+
+class _SuppliersPageState extends State<SuppliersPage> {
+
+  // --- FUNGSI WHATSAPP ---
   Future<void> _launchWhatsApp(String phone, String name) async {
+    // Bersihkan nombor
     var cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
-    // Guna nombor fallback jika testing di simulator
+
+    // Auto tambah 60 jika user isi 01...
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '60${cleanPhone.substring(1)}';
+    }
+
     final url = Uri.parse("https://wa.me/$cleanPhone?text=Hi $name, I would like to order stock.");
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       debugPrint("Cannot launch WhatsApp");
     }
   }
 
+  // --- FUNGSI TAMBAH SUPPLIER (DIALOG) ---
+  void _showAddDialog() {
+    final nameC = TextEditingController();
+    final phoneC = TextEditingController();
+    final itemC = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Add New Supplier"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameC, decoration: const InputDecoration(labelText: "Company Name")),
+            TextField(controller: phoneC, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "Phone (e.g. 0123456789)")),
+            TextField(controller: itemC, decoration: const InputDecoration(labelText: "Items (e.g. Milk)")),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              if (nameC.text.isNotEmpty && phoneC.text.isNotEmpty) {
+                // 1. Buat data baru
+                final newSup = Supplier(
+                  id: DateTime.now().toString(),
+                  name: nameC.text,
+                  items: itemC.text,
+                  phone: phoneC.text,
+                );
+
+                // 2. Hantar ke Main Screen supaya simpan
+                widget.onAddSupplier(newSup);
+
+                Navigator.pop(ctx); // Tutup dialog
+              }
+            },
+            child: const Text("Save"),
+          )
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: suppliers.length + 1,
+      itemCount: widget.suppliers.length + 1,
       itemBuilder: (context, index) {
-        if (index == suppliers.length) {
-          return Container(
-            margin: const EdgeInsets.only(top: 10),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue[200]!, style: BorderStyle.solid),
+
+        // --- BUTTON ADD NEW (Item Terakhir) ---
+        if (index == widget.suppliers.length) {
+          return InkWell( // Guna InkWell supaya boleh tekan
+            onTap: _showAddDialog,
+            child: Container(
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue[200]!, style: BorderStyle.solid),
+              ),
+              child: const Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Text("Add New Supplier", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                    ],
+                  )
+              ),
             ),
-            child: const Center(child: Text("+ Add New Supplier", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
           );
         }
 
-        final sup = suppliers[index];
+        final sup = widget.suppliers[index];
+
+        // --- KAD LIST SUPPLIER ---
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),

@@ -179,7 +179,14 @@ class _MainScreenState extends State<MainScreen> {
     final List<Widget> pages = [
       DashboardPage(inventory: inventory, onAddPressed: () => _showAddProductDialog(), onTabChange: _onItemTapped),
       InventoryPage(inventory: inventory),
-      SuppliersPage(suppliers: suppliers),
+      SuppliersPage(
+        suppliers: suppliers,
+        onAddSupplier: (newSupplier) { // <--- Tambah ini
+          setState(() {
+            suppliers.add(newSupplier);
+          });
+        },
+      ),
       ReportsPage(inventory: inventory),
     ];
 
