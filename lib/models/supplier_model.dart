@@ -1,8 +1,8 @@
 class Supplier {
-  final int id;
-  final String name;
-  final String items;
-  final String phone;
+  String id;
+  String name;
+  String items;
+  String phone;
 
   Supplier({
     required this.id,
